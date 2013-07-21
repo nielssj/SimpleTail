@@ -68,6 +68,11 @@ namespace SimpleTail
             }
 
             new SimpleTail(fileList.ToArray());
+
+#if DEBUG
+            Console.WriteLine("Press any key to close...");
+            Console.ReadLine();
+#endif
         }
     }
 }
