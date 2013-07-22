@@ -10,6 +10,7 @@ namespace SimpleTail
     {
         public string path;
         public bool follow;
+        public bool quiet;
         // TODO: Add further fields when more options are supported
     }
 
@@ -31,11 +32,17 @@ namespace SimpleTail
                     if (arg.StartsWith("-"))
                     {
                         // OPTION:
-                        switch (arg.ToLower())
+                        switch (arg)
                         {
                             case "-f":
                                 fileArgs.follow = true;
                                 break;
+                            case "-q":
+                                fileArgs.quiet = true;
+                                break;
+                            default:
+                                Console.WriteLine("Unsupported option '{0}'. Usage: ([-f] [-q] [FILE]) ... ", arg);
+                                return;
                             // TODO: Support more options such as '-n', '--retry' and '-s'
                         }
                     }
