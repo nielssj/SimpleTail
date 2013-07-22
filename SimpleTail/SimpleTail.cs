@@ -23,16 +23,20 @@ namespace SimpleTail
                     continue;
                 }
 
-                // TODO: Print a header with file path if not quiet mode
+                // Print header with file path, if quiet mode isn't enabled.
+                if(!fileArgs.quiet)
+                {
+                    Console.WriteLine("====={0}=====", fileArgs.path);
+                }
 
+                // Print last 10 lines of file
                 LinkedCharBuffer lines = ReadLastLines(LINE_COUNT, fileArgs.path);
-
                 foreach (char c in lines)
                 {
                     Console.Write(c);
                 }
 
-                // TODO: Start follow threads for each fileArg if follow flag is set
+                // TODO: Start follow threads for each fileArg, if follow flag is set
             }
         }
 
