@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SimpleTail
 {
@@ -26,7 +28,7 @@ namespace SimpleTail
                 // Print header with file path, if quiet mode isn't enabled.
                 if(!fileArgs.quiet)
                 {
-                    Console.WriteLine("====={0}=====", fileArgs.path);
+                    PrintHeader(fileArgs.path);
                 }
 
                 // Print last 10 lines of file
@@ -36,8 +38,64 @@ namespace SimpleTail
                     Console.Write(c);
                 }
 
-                // TODO: Start follow threads for each fileArg, if follow flag is set
+                // Start file watcher, if follow flag is set
+                if (fileArgs.follow)
+                {
+                    FollowFileTimer(fileArgs.path);
+                }
             }
+        }
+
+        // Print the last 1024 bytes of a file every 2.5 seconds
+        private void FollowFileTimer(string path)
+        {
+            Task followThread = Task.Factory.StartNew(() =>
+            {
+                while (true)
+                {
+                    PrintHeader(path);
+
+                    using (FileStream fs = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                    {
+                        fs.Seek(-1024, SeekOrigin.End);
+
+                        byte[] bytes = new byte[1024];
+                        fs.Read(bytes, 0, 1024);
+
+                        string s = Encoding.Default.GetString(bytes);
+                        Console.WriteLine(s);
+                    }
+
+                    Thread.Sleep(2500);
+                }
+            });
+        }
+
+        // Print the last 1024 bytes whenever the file changes
+        private void FollowFileWatcher(string path)
+        {
+            // Create and start FileSystemWatcher to look for changes
+            FileSystemWatcher fileWatcher = new FileSystemWatcher(Path.GetDirectoryName(path));
+            fileWatcher.Filter = Path.GetFileName(path);
+            fileWatcher.EnableRaisingEvents = true;
+            fileWatcher.Changed += (sender, e) =>
+            {
+                lock (Console.Out)
+                {
+                    PrintHeader(path);
+
+                    using (FileStream fs = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                    {
+                        fs.Seek(-1024, SeekOrigin.End);
+
+                        byte[] bytes = new byte[1024];
+                        fs.Read(bytes, 0, 1024);
+
+                        string s = Encoding.Default.GetString(bytes);
+                        Console.WriteLine(s);
+                    }
+                }
+            };
         }
 
         // Read lines at end of file till line limit has been reached
@@ -46,7 +104,7 @@ namespace SimpleTail
             var lines = new LinkedCharBuffer();
             int lineCount = 0;
 
-            using (StreamReader sr = new StreamReader(path))
+            using (StreamReader sr = new StreamReader(File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)))
             {
                 char[] buffer;
                 sr.BaseStream.Seek(-READ_CHUNK_SIZE, SeekOrigin.End);
@@ -84,6 +142,11 @@ namespace SimpleTail
             }
 
             return lines;
+        }
+
+        private void PrintHeader(string path)
+        {
+            Console.WriteLine("===== {0} =====", path);
         }
     }
 }
